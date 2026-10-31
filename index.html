@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Prep Tracker - Target: Nov 16</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase JS Client v2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Navigation & Countdown Header -->
+  <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-black text-xl">
+          ⚡
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            Target Final Sprint
+            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">Exam: Nov 16</span>
+          </h1>
+          <p class="text-xs text-slate-400">PSNM, Signals & Systems, DCD, EDC + Supabase Cloud Sync</p>
+        </div>
+      </div>
+
+      <!-- Cloud Sync & Countdown Banner -->
+      <div class="flex items-center gap-3">
+        <!-- Supabase Cloud Connection Status Indicator -->
+        <button onclick="openConfigModal()" id="supabaseStatusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-xs font-medium text-slate-300 transition" title="Click to configure Supabase Connection">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" id="syncStatusDot"></span>
+          <span id="syncStatusText">Local Only</span>
+          <i data-lucide="settings" class="w-3.5 h-3.5 text-slate-400"></i>
+        </button>
+
+        <!-- Countdown -->
+        <div class="flex items-center gap-4 bg-slate-800/60 border border-slate-700/60 px-3.5 py-1.5 rounded-xl">
+          <div class="flex items-center gap-1.5 text-amber-400">
+            <i data-lucide="flame" class="w-4 h-4"></i>
+            <span class="text-[11px] uppercase tracking-wider font-semibold">Exam</span>
+          </div>
+          <div class="h-3.5 w-px bg-slate-700"></div>
+          <div id="countdown-display" class="font-mono text-xs font-bold text-white flex items-center gap-1.5">
+            Calculating...
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button onclick="syncToCloud(true)" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 transition flex items-center gap-1.5" title="Force Cloud Sync">
+          <i data-lucide="cloud" class="w-3.5 h-3.5"></i> Sync Now
+        </button>
+        <button onclick="exportData()" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1" title="Export Backup JSON">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i> Export
+        </button>
+        <button onclick="document.getElementById('importFile').click()" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1" title="Import Backup JSON">
+          <i data-lucide="upload" class="w-3.5 h-3.5"></i> Import
+        </button>
+        <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(event)">
+        <button onclick="resetDefaults()" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition" title="Reset sample structure">
+          Reset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
+    
+    <!-- Top Overall Statistics Row -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <!-- Total Progress Card -->
+      <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl relative overflow-hidden">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-medium text-slate-400">Total Completion</span>
+          <span class="p-1.5 bg-indigo-500/10 text-indigo-400 rounded-lg"><i data-lucide="trophy" class="w-4 h-4"></i></span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="overall-percentage" class="text-3xl font-extrabold text-white">0%</span>
+          <span id="overall-fraction" class="text-xs text-slate-400">0/0 topics</span>
+        </div>
+        <div class="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+          <div id="overall-progress-bar" class="bg-indigo-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Lectures Card -->
+      <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-medium text-slate-400">Lectures Finished</span>
+          <span class="p-1.5 bg-sky-500/10 text-sky-400 rounded-lg"><i data-lucide="video" class="w-4 h-4"></i></span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="total-lectures-done" class="text-3xl font-extrabold text-white">0</span>
+          <span id="total-lectures-target" class="text-xs text-slate-400">/ 0 total</span>
+        </div>
+        <div class="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+          <div id="lectures-progress-bar" class="bg-sky-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Problems Solved Card -->
+      <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-medium text-slate-400">Problems Solved</span>
+          <span class="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg"><i data-lucide="check-circle" class="w-4 h-4"></i></span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="total-problems-done" class="text-3xl font-extrabold text-emerald-400">0</span>
+          <span id="total-problems-target" class="text-xs text-slate-400">/ 0 target</span>
+        </div>
+        <div class="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+          <div id="problems-progress-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Days Left Card -->
+      <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-medium text-slate-400">Days Remaining</span>
+          <span class="p-1.5 bg-amber-500/10 text-amber-400 rounded-lg"><i data-lucide="calendar" class="w-4 h-4"></i></span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="days-remaining" class="text-3xl font-extrabold text-amber-400">--</span>
+          <span class="text-xs text-slate-400">Days to Nov 16</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-3 truncate" id="daily-target-note">Stay consistent every single day.</p>
+      </div>
+    </div>
+
+    <!-- Subject Tabs -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-2 mb-6 border-b border-slate-800" id="subject-tabs">
+      <!-- Tabs dynamically injected -->
+    </div>
+
+    <!-- Active Subject Workspace -->
+    <div id="subject-workspace">
+      <!-- Workspace content dynamically injected -->
+    </div>
+  </main>
+
+  <!-- Supabase Cloud Connection Modal -->
+  <div id="supabaseConfigModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="database" class="w-4 h-4 text-emerald-400"></i> Supabase Cloud Settings
+        </h3>
+        <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+        Connect to your free Supabase project to sync your preparation progress, lectures, solved problems, and uploaded short notes across any phone or laptop.
+      </p>
+      <form onsubmit="handleSaveSupabaseConfig(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Supabase Project URL</label>
+          <input type="url" id="configSupabaseUrl" placeholder="https://xyzcompany.supabase.co" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Supabase Anon Key (Public Key)</label>
+          <input type="password" id="configSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+        </div>
+        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
+          <span class="font-bold text-emerald-400">Tip:</span> Find these in your <b>Supabase Dashboard &gt; Project Settings &gt; API</b>. Run the provided <code class="text-indigo-400">supabase_schema.sql</code> script once in the Supabase SQL Editor.
+        </div>
+        <div class="flex justify-between items-center pt-2">
+          <button type="button" onclick="disconnectSupabase()" class="text-xs text-rose-400 hover:underline">Disconnect</button>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeConfigModal()" class="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white rounded-xl">Cancel</button>
+            <button type="submit" class="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-600/30">Connect & Sync</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Topic Modal -->
+  <div id="addTopicModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-400"></i> Add New Topic
+        </h3>
+        <button onclick="closeAddTopicModal()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form id="addTopicForm" onsubmit="handleCreateTopic(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Topic Title *</label>
+          <input type="text" id="topicTitle" required placeholder="e.g., Convolution & LTI Properties" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Target Lectures</label>
+            <input type="number" id="topicLecturesTarget" min="0" value="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Target Problems</label>
+            <input type="number" id="topicProblemsTarget" min="0" value="15" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Status</label>
+          <select id="topicStatus" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Revision Needed">Revision Needed</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Key Formulas / Initial Notes</label>
+          <textarea id="topicNotes" rows="3" placeholder="Important properties, pitfalls, or problem sources..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeAddTopicModal()" class="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white rounded-xl">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/30">Save Topic</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Document/Image Preview Modal -->
+  <div id="filePreviewModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-slate-950">
+        <h3 id="previewTitle" class="text-sm font-bold text-white truncate max-w-md">Document Preview</h3>
+        <div class="flex items-center gap-3">
+          <a id="previewDownloadBtn" download href="#" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1.5">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> Download
+          </a>
+          <button onclick="closePreviewModal()" class="text-slate-400 hover:text-white p-1">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+      <div id="previewContent" class="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-950/50">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Supabase Client Config & Local IndexedDB fallback
+    let supabaseClient = null;
+    let syncTimeout = null;
+
+    function getSupabaseConfig() {
+      return {
+        url: localStorage.getItem("supabase_url") || "",
+        key: localStorage.getItem("supabase_key") || ""
+      };
+    }
+
+    function initSupabase() {
+      const cfg = getSupabaseConfig();
+      const dot = document.getElementById("syncStatusDot");
+      const text = document.getElementById("syncStatusText");
+
+      if (cfg.url && cfg.key && window.supabase) {
+        try {
+          supabaseClient = window.supabase.createClient(cfg.url, cfg.key);
+          dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+          text.innerText = "Supabase Synced";
+          return true;
+        } catch(e) {
+          console.error("Supabase init error:", e);
+        }
+      }
+      supabaseClient = null;
+      if (dot && text) {
+        dot.className = "w-2 h-2 rounded-full bg-amber-400";
+        text.innerText = "Local (Click to Connect)";
+      }
+      return false;
+    }
+
+    function openConfigModal() {
+      const cfg = getSupabaseConfig();
+      document.getElementById("configSupabaseUrl").value = cfg.url;
+      document.getElementById("configSupabaseKey").value = cfg.key;
+      document.getElementById("supabaseConfigModal").classList.remove("hidden");
+    }
+
+    function closeConfigModal() {
+      document.getElementById("supabaseConfigModal").classList.add("hidden");
+    }
+
+    async function handleSaveSupabaseConfig(e) {
+      e.preventDefault();
+      const url = document.getElementById("configSupabaseUrl").value.trim();
+      const key = document.getElementById("configSupabaseKey").value.trim();
+      
+      localStorage.setItem("supabase_url", url);
+      localStorage.setItem("supabase_key", key);
+
+      initSupabase();
+      closeConfigModal();
+      
+      if (supabaseClient) {
+        await loadFromCloud();
+        await syncToCloud(true);
+      }
+    }
+
+    function disconnectSupabase() {
+      localStorage.removeItem("supabase_url");
+      localStorage.removeItem("supabase_key");
+      initSupabase();
+      closeConfigModal();
+      alert("Disconnected from Supabase. Currently using local browser storage.");
+    }
+
+    // Cloud Sync Operations
+    async function syncToCloud(showToast = false) {
+      if (!supabaseClient) return;
+
+      const dot = document.getElementById("syncStatusDot");
+      const text = document.getElementById("syncStatusText");
+      if (text) text.innerText = "Syncing...";
+
+      try {
+        const { error } = await supabaseClient
+          .from("exam_prep_state")
+          .upsert({
+            id: "primary_state",
+            data: appData,
+            updated_at: new Date().toISOString()
+          });
+
+        if (error) throw error;
+
+        if (text) text.innerText = "Supabase Synced";
+        if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+        if (showToast) alert("Successfully synced with Supabase Cloud!");
+      } catch(err) {
+        console.error("Failed to sync to Supabase:", err);
+        if (text) text.innerText = "Sync Failed";
+        if (dot) dot.className = "w-2 h-2 rounded-full bg-rose-400";
+        if (showToast) alert("Cloud Sync Failed: " + (err.message || "Ensure supabase_schema.sql was run in Supabase SQL editor."));
+      }
+    }
+
+    async function loadFromCloud() {
+      if (!supabaseClient) return;
+      try {
+        const { data, error } = await supabaseClient
+          .from("exam_prep_state")
+          .select("data")
+          .eq("id", "primary_state")
+          .maybeSingle();
+
+        if (error) throw error;
+        if (data && data.data) {
+          appData = data.data;
+          localStorage.setItem("examPrepTrackerData_v2", JSON.stringify(appData));
+          render();
+        }
+      } catch(err) {
+        console.warn("Could not fetch remote state (first run?):", err.message);
+      }
+    }
+
+    // IndexedDB wrapper for large files (Local Fallback)
+    const DB_NAME = "ExamPrepNotesDB";
+    const DB_VERSION = 1;
+    const STORE_NAME = "notes_files";
+
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: "id" });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function saveFileToDB(fileItem) {
+      const db = await initDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        store.put(fileItem);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function getFileFromDB(id) {
+      const db = await initDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readonly");
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get(id);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function deleteFileFromDB(id) {
+      const db = await initDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        store.delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    // Initial Seed Data with syllabus structure for all 4 requested subjects
+    const defaultData = {
+      examDate: "2026-11-16T09:00:00",
+      activeSubjectId: "psnm",
+      subjects: [
+        {
+          id: "psnm",
+          name: "PSNM",
+          fullName: "Probability, Statistics & Numerical Methods",
+          badgeColor: "indigo",
+          colorClasses: "from-indigo-500 to-indigo-700",
+          icon: "function-square",
+          description: "Distributions, Curve Fitting, Interpolation, Numerical Integration & ODEs",
+          notesFiles: [],
+          topics: [
+            {
+              id: "psnm-1",
+              title: "Probability Distributions (Binomial, Poisson, Normal)",
+              lecturesCompleted: 3,
+              lecturesTotal: 4,
+              problemsSolved: 18,
+              problemsTotal: 25,
+              status: "In Progress",
+              notes: "Formula: Normal distribution pdf, mean and variance of Poisson distribution (λ). Remember standard normal table lookups.",
+              notesFiles: []
+            },
+            {
+              id: "psnm-2",
+              title: "Interpolation (Newton's Forward/Backward & Lagrange)",
+              lecturesCompleted: 2,
+              lecturesTotal: 2,
+              problemsSolved: 12,
+              problemsTotal: 15,
+              status: "Completed",
+              notes: "Unequal intervals -> Lagrange & Newton Divided Difference. Equal intervals -> Newton forward/backward.",
+              notesFiles: []
+            },
+            {
+              id: "psnm-3",
+              title: "Numerical Integration (Trapezoidal, Simpson's 1/3 & 3/8)",
+              lecturesCompleted: 1,
+              lecturesTotal: 2,
+              problemsSolved: 6,
+              problemsTotal: 15,
+              status: "In Progress",
+              notes: "Simpson 1/3 needs even number of intervals. Simpson 3/8 needs multiple of 3.",
+              notesFiles: []
+            },
+            {
+              id: "psnm-4",
+              title: "Numerical Solution of ODEs (Euler, Modified Euler, RK-4)",
+              lecturesCompleted: 0,
+              lecturesTotal: 3,
+              problemsSolved: 0,
+              problemsTotal: 20,
+              status: "Not Started",
+              notes: "RK-4 is heavily repeated in semester exams! Master k1, k2, k3, k4 step calculations.",
+              notesFiles: []
+            }
+          ]
+        },
+        {
+          id: "signals",
+          name: "Signals and System",
+          fullName: "Signals and Systems (SS)",
+          badgeColor: "sky",
+          colorClasses: "from-sky-500 to-blue-700",
+          icon: "activity",
+          description: "LTI Systems, Continuous & Discrete Fourier Transform, Laplace & Z-Transform",
+          notesFiles: [],
+          topics: [
+            {
+              id: "sig-1",
+              title: "Classification of Signals & LTI System Properties",
+              lecturesCompleted: 4,
+              lecturesTotal: 4,
+              problemsSolved: 20,
+              problemsTotal: 20,
+              status: "Completed",
+              notes: "Linearity, Time-Invariance, Causality, Stability (BIBO criterion). Practice integration of impulse responses.",
+              notesFiles: []
+            },
+            {
+              id: "sig-2",
+              title: "Convolution (Continuous & Discrete)",
+              lecturesCompleted: 2,
+              lecturesTotal: 3,
+              problemsSolved: 14,
+              problemsTotal: 20,
+              status: "In Progress",
+              notes: "Graphical method steps: Fold, Shift, Multiply, Integrate. Check limits carefully!",
+              notesFiles: []
+            },
+            {
+              id: "sig-3",
+              title: "Laplace Transform & ROC Properties",
+              lecturesCompleted: 1,
+              lecturesTotal: 3,
+              problemsSolved: 5,
+              problemsTotal: 18,
+              status: "In Progress",
+              notes: "Stability condition: ROC must include jω axis. Right-sided signal -> ROC is Re(s) > σ_max.",
+              notesFiles: []
+            },
+            {
+              id: "sig-4",
+              title: "Z-Transform & Discrete Frequency Analysis (DTFT/FFT)",
+              lecturesCompleted: 0,
+              lecturesTotal: 4,
+              problemsSolved: 0,
+              problemsTotal: 25,
+              status: "Not Started",
+              notes: "Unit circle inclusion for DTFT stability. Inverse Z using partial fraction expansion.",
+              notesFiles: []
+            }
+          ]
+        },
+        {
+          id: "dcd",
+          name: "Digital Circuit Design",
+          fullName: "Digital Circuit Design (DCD)",
+          badgeColor: "emerald",
+          colorClasses: "from-emerald-500 to-teal-700",
+          icon: "cpu",
+          description: "Combinational Logic, Sequential Circuits, Counters, Registers & State Machines",
+          notesFiles: [],
+          topics: [
+            {
+              id: "dcd-1",
+              title: "Boolean Minimization & K-Maps / Quine-McCluskey",
+              lecturesCompleted: 3,
+              lecturesTotal: 3,
+              problemsSolved: 22,
+              problemsTotal: 25,
+              status: "Completed",
+              notes: "Don't cares (X) inclusion for maximum group size. Check essential prime implicants.",
+              notesFiles: []
+            },
+            {
+              id: "dcd-2",
+              title: "Combinational Circuits (Multiplexers, Decoders, Adders)",
+              lecturesCompleted: 2,
+              lecturesTotal: 3,
+              problemsSolved: 10,
+              problemsTotal: 18,
+              status: "In Progress",
+              notes: "Implement boolean functions using 8:1 MUX and 4:1 MUX + inverter gates.",
+              notesFiles: []
+            },
+            {
+              id: "dcd-3",
+              title: "Flip-Flops & Conversion (SR, JK, D, T)",
+              lecturesCompleted: 2,
+              lecturesTotal: 2,
+              problemsSolved: 12,
+              problemsTotal: 15,
+              status: "Completed",
+              notes: "Characteristic equations: Q+ = D, Q+ = T ⊕ Q, Q+ = J Q' + K' Q. Race around condition in JK.",
+              notesFiles: []
+            },
+            {
+              id: "dcd-4",
+              title: "Synchronous & Asynchronous Counters / FSMs",
+              lecturesCompleted: 0,
+              lecturesTotal: 4,
+              problemsSolved: 2,
+              problemsTotal: 20,
+              status: "In Progress",
+              notes: "State diagram -> State table -> Excitation table -> K-map for FF inputs -> Circuit diagram.",
+              notesFiles: []
+            }
+          ]
+        },
+        {
+          id: "edc",
+          name: "EDC",
+          fullName: "Electronic Devices and Circuits (EDC)",
+          badgeColor: "rose",
+          colorClasses: "from-rose-500 to-pink-700",
+          icon: "zap",
+          description: "Semiconductor Physics, PN Junction Diodes, BJT Biasing, MOSFETs & Small Signal Models",
+          notesFiles: [],
+          topics: [
+            {
+              id: "edc-1",
+              title: "Semiconductor Physics & PN Junction Diode",
+              lecturesCompleted: 3,
+              lecturesTotal: 3,
+              problemsSolved: 15,
+              problemsTotal: 15,
+              status: "Completed",
+              notes: "Built-in potential formula Vbi = Vt * ln(Na*Nd/ni^2). Depletion capacitance vs diffusion capacitance.",
+              notesFiles: []
+            },
+            {
+              id: "edc-2",
+              title: "Diode Applications (Rectifiers, Clippers, Clampers, Zener)",
+              lecturesCompleted: 2,
+              lecturesTotal: 3,
+              problemsSolved: 16,
+              problemsTotal: 20,
+              status: "In Progress",
+              notes: "Zener voltage regulator: calculate Iz_min, Iz_max, and ripple factor calculation.",
+              notesFiles: []
+            },
+            {
+              id: "edc-3",
+              title: "BJT Biasing & Stability Factor (CE, CB, CC)",
+              lecturesCompleted: 1,
+              lecturesTotal: 3,
+              problemsSolved: 7,
+              problemsTotal: 20,
+              status: "In Progress",
+              notes: "Voltage divider bias stability factor S(Ico) = (1 + β)/(1 + β * (Re / (Rth + Re))).",
+              notesFiles: []
+            },
+            {
+              id: "edc-4",
+              title: "MOSFET Characteristics & Small Signal Hybrid-π Model",
+              lecturesCompleted: 0,
+              lecturesTotal: 4,
+              problemsSolved: 0,
+              problemsTotal: 25,
+              status: "Not Started",
+              notes: "Square-law equation Id in saturation = 0.5 * μn * Cox * (W/L) * (Vgs - Vth)^2. Transconductance gm.",
+              notesFiles: []
+            }
+          ]
+        }
+      ]
+    };
+
+    let appData = loadData();
+
+    function loadData() {
+      const saved = localStorage.getItem("examPrepTrackerData_v2");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          parsed.subjects.forEach(s => {
+            if (!s.notesFiles) s.notesFiles = [];
+            s.topics.forEach(t => {
+              if (!t.notesFiles) t.notesFiles = [];
+            });
+          });
+          return parsed;
+        } catch(e) {
+          console.error("Failed to parse saved data, fallback to default", e);
+        }
+      }
+      return JSON.parse(JSON.stringify(defaultData));
+    }
+
+    function saveData() {
+      localStorage.setItem("examPrepTrackerData_v2", JSON.stringify(appData));
+      render();
+
+      clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(() => {
+        syncToCloud(false);
+      }, 1000);
+    }
+
+    function resetDefaults() {
+      if (confirm("Reset to default structure? Your modifications will be reset.")) {
+        appData = JSON.parse(JSON.stringify(defaultData));
+        saveData();
+      }
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(appData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `exam-prep-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (parsed && parsed.subjects) {
+            appData = parsed;
+            saveData();
+            alert("Study data loaded successfully!");
+          }
+        } catch(err) {
+          alert("Invalid JSON file: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    // Calculations
+    function updateCountdown() {
+      const examTime = new Date(appData.examDate).getTime();
+      const now = new Date().getTime();
+      const diff = examTime - now;
+
+      const countdownEl = document.getElementById("countdown-display");
+      const daysRemainingEl = document.getElementById("days-remaining");
+
+      if (diff <= 0) {
+        countdownEl.innerHTML = `<span class="text-rose-400 font-bold">Exam Day!</span>`;
+        if (daysRemainingEl) daysRemainingEl.innerText = "0";
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      countdownEl.innerHTML = `
+        <span class="text-indigo-400">${days}d</span> :
+        <span class="text-slate-300">${hours}h</span> :
+        <span class="text-slate-300">${minutes}m</span> :
+        <span class="text-amber-400">${seconds}s</span>
+      `;
+      if (daysRemainingEl) {
+        daysRemainingEl.innerText = days;
+      }
+    }
+
+    // Render Tabs
+    function renderTabs() {
+      const container = document.getElementById("subject-tabs");
+      container.innerHTML = appData.subjects.map(s => {
+        const isActive = s.id === appData.activeSubjectId;
+        const totalTopics = s.topics.length;
+        const completedTopics = s.topics.filter(t => t.status === "Completed").length;
+        const pct = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+
+        return `
+          <button onclick="selectSubject('${s.id}')" class="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+            isActive 
+              ? 'bg-slate-800 border-indigo-500/50 text-white shadow-lg shadow-indigo-500/10' 
+              : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }">
+            <div class="w-2.5 h-2.5 rounded-full ${isActive ? 'bg-indigo-400 animate-pulse' : 'bg-slate-600'}"></div>
+            <span>${s.name}</span>
+            <span class="text-xs font-mono font-normal px-1.5 py-0.5 rounded ${isActive ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-800 text-slate-500'}">
+              ${pct}%
+            </span>
+          </button>
+        `;
+      }).join("");
+    }
+
+    function selectSubject(id) {
+      appData.activeSubjectId = id;
+      render();
+    }
+
+    // Overall Metrics
+    function calculateMetrics() {
+      let totalTopics = 0;
+      let completedTopics = 0;
+      let totalLecDone = 0;
+      let totalLec = 0;
+      let totalProbDone = 0;
+      let totalProb = 0;
+
+      appData.subjects.forEach(sub => {
+        sub.topics.forEach(t => {
+          totalTopics++;
+          if (t.status === "Completed") completedTopics++;
+          totalLecDone += Number(t.lecturesCompleted || 0);
+          totalLec += Number(t.lecturesTotal || 0);
+          totalProbDone += Number(t.problemsSolved || 0);
+          totalProb += Number(t.problemsTotal || 0);
+        });
+      });
+
+      const overallPct = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+      const lecPct = totalLec > 0 ? Math.min(100, Math.round((totalLecDone / totalLec) * 100)) : 0;
+      const probPct = totalProb > 0 ? Math.min(100, Math.round((totalProbDone / totalProb) * 100)) : 0;
+
+      document.getElementById("overall-percentage").innerText = `${overallPct}%`;
+      document.getElementById("overall-fraction").innerText = `${completedTopics}/${totalTopics} topics done`;
+      document.getElementById("overall-progress-bar").style.width = `${overallPct}%`;
+
+      document.getElementById("total-lectures-done").innerText = totalLecDone;
+      document.getElementById("total-lectures-target").innerText = `/ ${totalLec} total`;
+      document.getElementById("lectures-progress-bar").style.width = `${lecPct}%`;
+
+      document.getElementById("total-problems-done").innerText = totalProbDone;
+      document.getElementById("total-problems-target").innerText = `/ ${totalProb} target`;
+      document.getElementById("problems-progress-bar").style.width = `${probPct}%`;
+    }
+
+    // Render Active Subject Area
+    function renderWorkspace() {
+      const subject = appData.subjects.find(s => s.id === appData.activeSubjectId) || appData.subjects[0];
+      const workspace = document.getElementById("subject-workspace");
+      if (!subject) return;
+
+      if (!subject.notesFiles) subject.notesFiles = [];
+
+      let subLecDone = 0;
+      let subLecTotal = 0;
+      let subProbDone = 0;
+      let subProbTotal = 0;
+      let subCompleted = 0;
+
+      subject.topics.forEach(t => {
+        subLecDone += Number(t.lecturesCompleted || 0);
+        subLecTotal += Number(t.lecturesTotal || 0);
+        subProbDone += Number(t.problemsSolved || 0);
+        subProbTotal += Number(t.problemsTotal || 0);
+        if (t.status === "Completed") subCompleted++;
+      });
+
+      const subProgress = subject.topics.length > 0 ? Math.round((subCompleted / subject.topics.length) * 100) : 0;
+
+      workspace.innerHTML = `
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 mb-6">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+            <div>
+              <div class="flex items-center gap-3">
+                <span class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r ${subject.colorClasses}">
+                  ${subject.fullName}
+                </span>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-800 border border-slate-700 text-slate-300">
+                  ${subject.topics.length} Topics
+                </span>
+              </div>
+              <p class="text-sm text-slate-400 mt-1">${subject.description}</p>
+            </div>
+
+            <!-- Subject Mini stats & Actions -->
+            <div class="flex flex-wrap items-center gap-3">
+              <div class="flex items-center gap-4 bg-slate-950/70 border border-slate-800/80 px-4 py-2 rounded-2xl">
+                <div>
+                  <div class="text-[10px] uppercase font-bold text-slate-500">Coverage</div>
+                  <div class="text-base font-extrabold text-white">${subProgress}%</div>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div>
+                  <div class="text-[10px] uppercase font-bold text-slate-500">Lectures</div>
+                  <div class="text-base font-extrabold text-sky-400">${subLecDone} / ${subLecTotal}</div>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div>
+                  <div class="text-[10px] uppercase font-bold text-slate-500">Problems</div>
+                  <div class="text-base font-extrabold text-emerald-400">${subProbDone} / ${subProbTotal}</div>
+                </div>
+              </div>
+
+              <!-- Upload Subject-Wide Short Notes Button -->
+              <label class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition">
+                <i data-lucide="file-up" class="w-4 h-4 text-violet-400"></i> Upload Subject Notes
+                <input type="file" multiple class="hidden" accept=".pdf,.png,.jpg,.jpeg,.txt,.md,.doc,.docx" onchange="handleFileUpload(event, '${subject.id}', null)">
+              </label>
+
+              <button onclick="openAddTopicModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add Topic
+              </button>
+            </div>
+          </div>
+
+          <!-- Subject Level Uploaded Short Notes Vault -->
+          <div class="my-5 p-4 rounded-2xl bg-slate-950/40 border border-slate-800/60">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <i data-lucide="bookmark" class="w-4 h-4 text-violet-400"></i>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Subject Master Short Notes & Formula Sheets (${subject.notesFiles.length})
+                </h4>
+              </div>
+              <span class="text-[11px] text-slate-500">PDFs, Hand-written scans, Images, Cheat Sheets</span>
+            </div>
+
+            <div class="flex flex-wrap gap-2.5" id="subject-files-list">
+              ${subject.notesFiles.length === 0 ? `
+                <div class="text-xs text-slate-500 py-1 italic flex items-center gap-1.5">
+                  <i data-lucide="info" class="w-3.5 h-3.5"></i> No master short notes uploaded yet. Click "Upload Subject Notes" above to add your PDF formula sheet or handwritten pages!
+                </div>
+              ` : subject.notesFiles.map(file => renderFileBadge(subject.id, null, file)).join("")}
+            </div>
+          </div>
+
+          <!-- Topics List / Section Management -->
+          <div class="mt-6 space-y-4">
+            ${subject.topics.length === 0 ? `
+              <div class="text-center py-12 text-slate-500 text-sm">
+                No topics added yet for this subject. Click "Add Topic" to create one!
+              </div>
+            ` : subject.topics.map((topic, index) => renderTopicCard(subject.id, topic, index)).join("")}
+          </div>
+        </div>
+      `;
+
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    function renderFileBadge(subjectId, topicId, file) {
+      const isImg = file.type && file.type.startsWith("image/");
+      const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
+      const iconName = isImg ? "image" : (isPdf ? "file-text" : "paperclip");
+      const encodedId = `'${file.id}'`;
+      const encodedSub = `'${subjectId}'`;
+      const encodedTop = topicId ? `'${topicId}'` : 'null';
+
+      return `
+        <div class="group flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-violet-500/50 text-slate-300 transition shadow-sm">
+          <i data-lucide="${iconName}" class="w-3.5 h-3.5 text-violet-400 flex-shrink-0"></i>
+          <span onclick="previewFile(${encodedId}, '${escapeHtml(file.name)}', '${file.type}')" class="text-xs font-medium cursor-pointer hover:text-white max-w-[160px] truncate" title="${escapeHtml(file.name)}">
+            ${escapeHtml(file.name)}
+          </span>
+          <span class="text-[10px] text-slate-500 font-mono">${formatFileSize(file.size)}</span>
+          <button onclick="removeFile(${encodedSub}, ${encodedTop}, ${encodedId})" class="text-slate-500 hover:text-rose-400 transition p-0.5" title="Delete Note">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    function renderTopicCard(subjectId, topic, index) {
+      if (!topic.notesFiles) topic.notesFiles = [];
+
+      const statusColors = {
+        "Completed": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        "In Progress": "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+        "Not Started": "bg-slate-700/30 text-slate-400 border-slate-700/30",
+        "Revision Needed": "bg-amber-500/10 text-amber-400 border-amber-500/20"
+      };
+
+      const lecPercent = topic.lecturesTotal > 0 ? Math.min(100, Math.round((topic.lecturesCompleted / topic.lecturesTotal) * 100)) : 0;
+      const probPercent = topic.problemsTotal > 0 ? Math.min(100, Math.round((topic.problemsSolved / topic.problemsTotal) * 100)) : 0;
+
+      return `
+        <div class="bg-slate-950/60 border border-slate-800/90 rounded-2xl p-5 hover:border-slate-700 transition">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div class="flex items-start gap-3">
+              <span class="text-xs font-mono font-bold text-slate-500 mt-1">#${index + 1}</span>
+              <div>
+                <h4 class="text-base font-bold text-white">${escapeHtml(topic.title)}</h4>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-xs px-2.5 py-0.5 rounded-full border ${statusColors[topic.status] || statusColors['Not Started']}">
+                    ${topic.status}
+                  </span>
+                  <select onchange="updateTopicStatus('${subjectId}', '${topic.id}', this.value)" class="text-xs bg-slate-900 border border-slate-800 text-slate-400 rounded-lg px-2 py-0.5 focus:outline-none">
+                    <option value="Not Started" ${topic.status === 'Not Started' ? 'selected' : ''}>Not Started</option>
+                    <option value="In Progress" ${topic.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                    <option value="Revision Needed" ${topic.status === 'Revision Needed' ? 'selected' : ''}>Revision Needed</option>
+                    <option value="Completed" ${topic.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 self-end md:self-auto">
+              <!-- Upload Short Notes for this specific topic -->
+              <label class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs flex items-center gap-1.5 cursor-pointer transition" title="Attach PDF/Image notes for this topic">
+                <i data-lucide="paperclip" class="w-3.5 h-3.5 text-violet-400"></i> Attach Note
+                <input type="file" multiple class="hidden" accept=".pdf,.png,.jpg,.jpeg,.txt,.md" onchange="handleFileUpload(event, '${subjectId}', '${topic.id}')">
+              </label>
+
+              <button onclick="deleteTopic('${subjectId}', '${topic.id}')" class="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-900 transition" title="Delete Topic">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Attached Short Notes for Topic -->
+          ${topic.notesFiles && topic.notesFiles.length > 0 ? `
+            <div class="mb-4 flex flex-wrap gap-2 items-center bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <i data-lucide="paperclip" class="w-3 h-3 text-violet-400"></i> Topic Notes:
+              </span>
+              ${topic.notesFiles.map(file => renderFileBadge(subjectId, topic.id, file)).join("")}
+            </div>
+          ` : ''}
+
+          <!-- Counters & Progression interactive grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 pb-4">
+            <!-- Lecture Counter -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <i data-lucide="video" class="w-3.5 h-3.5 text-sky-400"></i> Lectures Completed
+                </span>
+                <span class="text-xs font-mono font-bold text-sky-400">${topic.lecturesCompleted} / ${topic.lecturesTotal}</span>
+              </div>
+              <div class="flex items-center gap-2 my-2">
+                <button onclick="adjustCounter('${subjectId}', '${topic.id}', 'lecturesCompleted', -1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold text-sm">-</button>
+                <input type="number" min="0" value="${topic.lecturesCompleted}" onchange="setCounterValue('${subjectId}', '${topic.id}', 'lecturesCompleted', this.value)" class="w-16 text-center bg-slate-950 border border-slate-800 rounded-lg py-1 text-sm font-bold text-white focus:outline-none">
+                <button onclick="adjustCounter('${subjectId}', '${topic.id}', 'lecturesCompleted', 1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold text-sm">+</button>
+                <span class="text-xs text-slate-500">of</span>
+                <input type="number" min="1" value="${topic.lecturesTotal}" onchange="setCounterValue('${subjectId}', '${topic.id}', 'lecturesTotal', this.value)" class="w-16 text-center bg-slate-950 border border-slate-800 rounded-lg py-1 text-xs text-slate-400 focus:outline-none" title="Total Lectures target">
+                <span class="text-xs text-slate-500">total</span>
+              </div>
+              <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+                <div class="bg-sky-500 h-full rounded-full transition-all" style="width: ${lecPercent}%"></div>
+              </div>
+            </div>
+
+            <!-- Problem Solving Counter -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <i data-lucide="check-square" class="w-3.5 h-3.5 text-emerald-400"></i> Topic Problems Solved
+                </span>
+                <span class="text-xs font-mono font-bold text-emerald-400">${topic.problemsSolved} / ${topic.problemsTotal}</span>
+              </div>
+              <div class="flex items-center gap-2 my-2">
+                <button onclick="adjustCounter('${subjectId}', '${topic.id}', 'problemsSolved', -1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold text-sm">-</button>
+                <input type="number" min="0" value="${topic.problemsSolved}" onchange="setCounterValue('${subjectId}', '${topic.id}', 'problemsSolved', this.value)" class="w-16 text-center bg-slate-950 border border-slate-800 rounded-lg py-1 text-sm font-bold text-emerald-400 focus:outline-none">
+                <button onclick="adjustCounter('${subjectId}', '${topic.id}', 'problemsSolved', 1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold text-sm">+</button>
+                <span class="text-xs text-slate-500">of</span>
+                <input type="number" min="1" value="${topic.problemsTotal}" onchange="setCounterValue('${subjectId}', '${topic.id}', 'problemsTotal', this.value)" class="w-16 text-center bg-slate-950 border border-slate-800 rounded-lg py-1 text-xs text-slate-400 focus:outline-none" title="Total Problems target">
+                <span class="text-xs text-slate-500">target</span>
+              </div>
+              <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+                <div class="bg-emerald-500 h-full rounded-full transition-all" style="width: ${probPercent}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes / Formulas / Doubts / Progression Journal -->
+          <div class="mt-2 pt-3 border-t border-slate-900">
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                <i data-lucide="file-edit" class="w-3.5 h-3.5 text-slate-400"></i> Topic Notes & Problem References:
+              </label>
+              <span id="save-status-${topic.id}" class="text-[10px] text-slate-500">Saved</span>
+            </div>
+            <textarea 
+              oninput="handleNoteEdit('${subjectId}', '${topic.id}', this.value)"
+              rows="2"
+              placeholder="Write formulas, solved question numbers (e.g., Ex 4.2 Q3-Q9 done), shortcuts, or doubts..."
+              class="w-full bg-slate-900/50 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 focus:bg-slate-900 transition leading-relaxed"
+            >${escapeHtml(topic.notes || '')}</textarea>
+          </div>
+        </div>
+      `;
+    }
+
+    // File Upload Handling (Supabase Storage + IndexedDB Fallback)
+    async function handleFileUpload(e, subjectId, topicId) {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      const subject = appData.subjects.find(s => s.id === subjectId);
+      if (!subject) return;
+
+      let targetTopic = null;
+      if (topicId) {
+        targetTopic = subject.topics.find(t => t.id === topicId);
+        if (!targetTopic) return;
+        if (!targetTopic.notesFiles) targetTopic.notesFiles = [];
+      } else {
+        if (!subject.notesFiles) subject.notesFiles = [];
+      }
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileId = "file-" + Date.now() + "-" + Math.random().toString(36).substr(2, 6);
+        let cloudUrl = null;
+
+        // Try Uploading to Supabase Storage if configured
+        if (supabaseClient) {
+          try {
+            const ext = file.name.split('.').pop();
+            const filePath = `notes/${fileId}.${ext}`;
+            const { data: uploadResult, error: uploadErr } = await supabaseClient.storage
+              .from('exam_notes')
+              .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+            if (!uploadErr && uploadResult) {
+              const { data: publicUrlData } = supabaseClient.storage.from('exam_notes').getPublicUrl(filePath);
+              if (publicUrlData) cloudUrl = publicUrlData.publicUrl;
+            }
+          } catch(err) {
+            console.warn("Supabase Storage upload warning, falling back to local:", err);
+          }
+        }
+
+        try {
+          const base64Data = await readFileAsDataURL(file);
+          
+          await saveFileToDB({
+            id: fileId,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            data: cloudUrl || base64Data,
+            cloudUrl: cloudUrl,
+            uploadedAt: new Date().toISOString()
+          });
+
+          const fileMeta = {
+            id: fileId,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            cloudUrl: cloudUrl
+          };
+
+          if (targetTopic) {
+            targetTopic.notesFiles.push(fileMeta);
+          } else {
+            subject.notesFiles.push(fileMeta);
+          }
+        } catch(err) {
+          console.error("Error saving file:", err);
+          alert("Failed to upload " + file.name);
+        }
+      }
+
+      e.target.value = '';
+      saveData();
+    }
+
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function removeFile(subjectId, topicId, fileId) {
+      if (!confirm("Remove this uploaded note?")) return;
+
+      const subject = appData.subjects.find(s => s.id === subjectId);
+      if (!subject) return;
+
+      if (topicId) {
+        const topic = subject.topics.find(t => t.id === topicId);
+        if (topic && topic.notesFiles) {
+          topic.notesFiles = topic.notesFiles.filter(f => f.id !== fileId);
+        }
+      } else {
+        if (subject.notesFiles) {
+          subject.notesFiles = subject.notesFiles.filter(f => f.id !== fileId);
+        }
+      }
+
+      try {
+        await deleteFileFromDB(fileId);
+      } catch(e) {
+        console.warn("IndexedDB delete warning", e);
+      }
+
+      saveData();
+    }
+
+    async function previewFile(fileId, fileName, fileType) {
+      const modal = document.getElementById("filePreviewModal");
+      const titleEl = document.getElementById("previewTitle");
+      const contentEl = document.getElementById("previewContent");
+      const downloadBtn = document.getElementById("previewDownloadBtn");
+
+      titleEl.innerText = fileName;
+      contentEl.innerHTML = `<div class="text-slate-400 text-sm animate-pulse">Loading document...</div>`;
+      modal.classList.remove("hidden");
+
+      try {
+        const fileObj = await getFileFromDB(fileId);
+        const fileSource = fileObj?.cloudUrl || fileObj?.data;
+
+        if (!fileSource) {
+          contentEl.innerHTML = `<div class="text-rose-400 text-sm">File not found. It may have been uploaded on another device.</div>`;
+          return;
+        }
+
+        downloadBtn.href = fileSource;
+        downloadBtn.download = fileName;
+
+        if (fileType.startsWith("image/")) {
+          contentEl.innerHTML = `<img src="${fileSource}" alt="${fileName}" class="max-h-[75vh] max-w-full rounded-lg object-contain shadow-md">`;
+        } else if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
+          contentEl.innerHTML = `
+            <iframe src="${fileSource}" class="w-full h-[75vh] rounded-lg border border-slate-800 bg-white" frameborder="0"></iframe>
+          `;
+        } else {
+          contentEl.innerHTML = `
+            <div class="text-center py-12">
+              <i data-lucide="file" class="w-12 h-12 text-slate-500 mx-auto mb-3"></i>
+              <p class="text-slate-300 text-sm font-semibold">${fileName}</p>
+              <a href="${fileSource}" download="${fileName}" class="inline-block mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold">Download File</a>
+            </div>
+          `;
+        }
+      } catch(err) {
+        contentEl.innerHTML = `<div class="text-rose-400 text-sm">Error opening preview: ${err.message}</div>`;
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closePreviewModal() {
+      document.getElementById("filePreviewModal").classList.add("hidden");
+      document.getElementById("previewContent").innerHTML = "";
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    // Status updates
+    function updateTopicStatus(subjectId, topicId, newStatus) {
+      const subject = appData.subjects.find(s => s.id === subjectId);
+      if (!subject) return;
+      const topic = subject.topics.find(t => t.id === topicId);
+      if (!topic) return;
+
+      topic.status = newStatus;
+      if (newStatus === "Completed") {
+        if (topic.lecturesCompleted < topic.lecturesTotal) topic.lecturesCompleted = topic.lecturesTotal;
+      }
+      saveData();
+    }
+
+    function adjustCounter(subjectId, topicId, field, amount) {
+      const subject = appData.subjects.find(s => s.id === subjectId);
+      if (!subject) return;
+      const topic = subject.topics.find(t => t.id === topicId);
+      if (!topic) return;
+
+      topic[field] = Math.max(0, (Number(topic[field]) || 0) + amount);
+
+      if (topic.lecturesCompleted >= topic.lecturesTotal && topic.problemsSolved >= topic.problemsTotal && topic.problemsTotal > 0) {
+        if (topic.status === "In Progress" || topic.status === "Not Started") {
+          topic.status = "Completed";
+        }
+      }
+      saveData();
+    }
+
+    function setCounterValue(subjectId, topicId, field, value) {
+      const subject = appData.subjects.find(s => s.id === subjectId);
+      if (!subject) return;
+      const topic = subject.topics.find(t => t.id === topicId);
+      if (!topic) return;
+
+      topic[field] = Math.max(0, Number(value) || 0);
+      saveData();
+    }
+
+    let noteDebounceTimer = null;
+    function handleNoteEdit(subjectId, topicId, value) {
+      const statusEl = document.getElementById(`save-status-${topicId}`);
+      if (statusEl) statusEl.innerText = "Typing...";
+
+      clearTimeout(noteDebounceTimer);
+      noteDebounceTimer = setTimeout(() => {
+        const subject = appData.subjects.find(s => s.id === subjectId);
+        if (!subject) return;
+        const topic = subject.topics.find(t => t.id === topicId);
+        if (!topic) return;
+        topic.notes = value;
+        localStorage.setItem("examPrepTrackerData_v2", JSON.stringify(appData));
+        if (statusEl) statusEl.innerText = "Saved";
+
+        clearTimeout(syncTimeout);
+        syncTimeout = setTimeout(() => syncToCloud(false), 1500);
+      }, 500);
+    }
+
+    function deleteTopic(subjectId, topicId) {
+      if (!confirm("Are you sure you want to delete this topic?")) return;
+      const subject = appData.subjects.find(s => s.id === subjectId);
+      if (!subject) return;
+      subject.topics = subject.topics.filter(t => t.id !== topicId);
+      saveData();
+    }
+
+    // Modal Operations
+    function openAddTopicModal() {
+      document.getElementById("addTopicModal").classList.remove("hidden");
+      document.getElementById("topicTitle").focus();
+    }
+
+    function closeAddTopicModal() {
+      document.getElementById("addTopicModal").classList.add("hidden");
+      document.getElementById("addTopicForm").reset();
+    }
+
+    function handleCreateTopic(e) {
+      e.preventDefault();
+      const subject = appData.subjects.find(s => s.id === appData.activeSubjectId);
+      if (!subject) return;
+
+      const title = document.getElementById("topicTitle").value.trim();
+      const lecturesTotal = Number(document.getElementById("topicLecturesTarget").value) || 1;
+      const problemsTotal = Number(document.getElementById("topicProblemsTarget").value) || 10;
+      const status = document.getElementById("topicStatus").value;
+      const notes = document.getElementById("topicNotes").value;
+
+      if (!title) return;
+
+      const newTopic = {
+        id: "topic-" + Date.now(),
+        title,
+        lecturesCompleted: 0,
+        lecturesTotal,
+        problemsSolved: 0,
+        problemsTotal,
+        status,
+        notes,
+        notesFiles: []
+      };
+
+      subject.topics.push(newTopic);
+      closeAddTopicModal();
+      saveData();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function render() {
+      renderTabs();
+      renderWorkspace();
+      calculateMetrics();
+      updateCountdown();
+    }
+
+    // Initialization
+    window.addEventListener("DOMContentLoaded", async () => {
+      await initDB().catch(console.error);
+      const isConnected = initSupabase();
+      render();
+      setInterval(updateCountdown, 1000);
+
+      if (isConnected) {
+        await loadFromCloud();
+      }
+    });
+  </script>
+</body>
+</html>

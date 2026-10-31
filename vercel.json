@@ -1,0 +1,8 @@
+{
+  "name": "exam-prep-tracker",
+  "version": "1.0.0",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
